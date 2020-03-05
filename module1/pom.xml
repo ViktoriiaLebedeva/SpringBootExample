@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>SpringBoot</artifactId>
+        <groupId>org.example</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>module1</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>module1</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>module2</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.1.5.RELEASE</version>
+                <configuration>
+                    <mainClass>org.example.App</mainClass>
+                    <jvmArguments>
+                        -javaagent:libs/drill-proxy.jar=ttl.agent.logger:STDOUT
+                        -agentpath:libs/drill_agent.dll=drillInstallationDir=libs,adminAddress=localhost:8090,agentId=BOOT,serviceGroupId=boot-services
+                    </jvmArguments>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.16.4</version>
+                <executions>
+                    <execution>
+                        <id>Build docker container</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>spring-boot-8-jdk</name>
+                            <build>
+                                <from>openjdk:8-jre-slim</from>
+                                <ports>
+                                    <port>8080</port>
+                                    <port>5008</port>
+                                </ports>
+                                <cmd>
+                                    <shell>
+                                        java -javaagent:/app/drill-proxy.jar=ttl.agent.logger:STDOUT -agentpath:/app/libdrill_agent.so=drillInstallationDir=/app,adminAddress=10.20.9.36:8090,agentId=BOOT8JDK,serviceGroupId=boot-services -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5008 -jar /jars/module1-1.0-SNAPSHOT.jar
+                                    </shell>
+                                </cmd>
+                                <assembly>
+                                    <basedir>/</basedir>
+                                    <inline>
+                                        <dependencySet>
+                                            <outputDirectory>jars</outputDirectory>
+                                        </dependencySet>
+                                        <files>
+                                            <file>
+                                                <source>/target/module1-1.0-SNAPSHOT.jar</source>
+                                                <outputDirectory>jars</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>/libs/drill-proxy.jar</source>
+                                                <outputDirectory>app</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>/libs/drillRuntime.jar</source>
+                                                <outputDirectory>app</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>/libs/libdrill_agent.so</source>
+                                                <outputDirectory>app</outputDirectory>
+                                            </file>
+                                            <file>
+                                                <source>/libs/libdrill_agent_api.h</source>
+                                                <outputDirectory>app</outputDirectory>
+                                            </file>
+                                        </files>
+                                    </inline>
+                                </assembly>
+                            </build>
+                            <run>
+                                <ports>
+                                    <port>8080:8080</port>
+                                    <port>5008:5008</port>
+                                </ports>
+                            </run>
+                        </image>
+                    </images>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
